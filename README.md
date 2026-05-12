@@ -1,94 +1,100 @@
 # Library Inventory API
 
-Recruitment-quality FastAPI backend for managing library book inventory.
+## Project Summary
 
-## Tech Stack
+**Library Inventory API** is a polished FastAPI backend built to manage a library's book catalogue and borrowing workflow. This repository demonstrates production-ready API design with strong validation, database migrations, Docker-based deployment, and end-to-end automated tests.
 
+## Why this project matters
+
+- Clean RESTful API design with clear business rules
+- Modern Python stack using FastAPI, SQLAlchemy 2.0, and Pydantic
+- Dockerized development environment for fast onboarding
+- Comprehensive test coverage for key behaviors
+- Database migration support with Alembic
+
+## Tech stack
+
+- Python 3.12
 - FastAPI
+- SQLAlchemy 2.0 ORM
 - PostgreSQL
-- SQLAlchemy 2.0 style ORM
-- Pydantic validation
+- Pydantic
+- Alembic
 - Docker + Docker Compose
 - Pytest
 
-## Project Structure
+## Architecture Overview
 
-```text
-app/
-  main.py
-  database.py
-  models.py
-  schemas.py
-  crud.py
-  routers/
-    __init__.py
-    books.py
-alembic/
-  env.py
-  script.py.mako
-  versions/
-    20260510_0001_create_books_table.py
-alembic.ini
-tests/
-  test_books.py
-Dockerfile
-docker-compose.yml
-requirements.txt
-README.md
-.gitignore
-```
+- `app/main.py` — application entry point with FastAPI and lifecycle startup logic
+- `app/database.py` — SQLAlchemy engine, session factory, and dependency injection
+- `app/models.py` — declarative Book ORM model with timestamps and borrow state
+- `app/schemas.py` — request/response schemas and validation logic
+- `app/crud.py` — repository-style operations with business rules and HTTP error handling
+- `app/routers/books.py` — REST endpoints for book CRUD and status updates
+- `alembic/` — migration configuration and schema versioning
+- `tests/test_books.py` — automated tests covering API workflows and validation
 
-## Run With Docker
+## Features
+
+- Create, list, update, and delete books
+- Borrow and return books with enforced status transitions
+- Validation for serial numbers and borrower card numbers
+- Automatic database initialization during startup
+- Docker Compose orchestration for API + PostgreSQL
+- SQL migration history via Alembic
+- Health check endpoint
+
+## Getting started
+
+### Local development with Docker
 
 ```bash
 docker compose up --build
 ```
 
-API endpoints:
+Then open:
 
-- API root docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-- Health: [http://localhost:8000/health](http://localhost:8000/health)
+- API docs: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
 
-## Run Tests
-
-Create/activate a virtualenv, install dependencies, then run tests:
+### Run tests
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 pytest
 ```
 
-## Optional: Database Migrations (Alembic)
+## Database migrations
 
-This project keeps automatic table creation on startup for local simplicity, and also includes Alembic for migration-based workflows.
-
-For a fresh database, run migrations in Docker:
+Use Alembic when you want migration-based schema control.
 
 ```bash
 docker compose exec api alembic upgrade head
 ```
 
-If tables already exist (created by app startup), baseline the DB first:
+If the database already exists and the schema was created automatically, initialize the migration state:
 
 ```bash
 docker compose exec api alembic stamp head
 ```
 
-Check current migration version:
+Check the current revision:
 
 ```bash
 docker compose exec api alembic current
 ```
 
-## API Overview
+## API endpoints
 
-- `POST /books` - add new book
-- `GET /books` - list all books
-- `PATCH /books/{serial_number}/status` - borrow/return book
-- `DELETE /books/{serial_number}` - delete book
-- `GET /health` - health check
+- `POST /books` — create a new book
+- `GET /books` — retrieve all books
+- `PATCH /books/{serial_number}/status` — borrow or return a book
+- `DELETE /books/{serial_number}` — delete a book
+- `GET /health` — service health check
 
-## Example cURL Commands
+## Example requests
 
 Create a book:
 
@@ -100,12 +106,6 @@ curl -X POST http://localhost:8000/books \
     "title": "The Pragmatic Programmer",
     "author": "Andrew Hunt"
   }'
-```
-
-List books:
-
-```bash
-curl http://localhost:8000/books
 ```
 
 Borrow a book:
@@ -135,22 +135,22 @@ Delete a book:
 curl -X DELETE http://localhost:8000/books/123456
 ```
 
-## Business Rules Implemented
+## Business rules enforced
 
-- `serial_number` must be unique and match `^\d{6}$`
-- `borrower_card_number` must match `^\d{6}$` when provided
-- new books are available by default
-- cannot borrow an already borrowed book
-- cannot return an already available book
-- borrowing sets:
-  - `is_borrowed = true`
-  - `borrowed_at = current UTC datetime`
-  - `borrower_card_number = provided card number`
-- returning sets:
-  - `is_borrowed = false`
-  - `borrowed_at = null`
-  - `borrower_card_number = null`
-- HTTP errors:
-  - `404` for missing books
-  - `409` for business conflicts (duplicate serial, invalid state transition)
-  - `422` for validation errors
+- `serial_number` must be exactly 6 digits
+- `borrower_card_number` must be exactly 6 digits when borrowing
+- New books are created in an available state
+- Cannot borrow a book that is already borrowed
+- Cannot return a book that is already available
+- Borrowing sets `borrowed_at` to the current UTC timestamp
+- Returning clears borrower metadata and sets `is_borrowed` to false
+
+## Notes for reviewers
+
+This project is designed to highlight practical API implementation skills, including:
+
+- schema validation and status-driven workflows
+- SQLAlchemy ORM modeling and session management
+- Docker-based local development
+- test-driven behavior verification
+- migration-aware database deployment
